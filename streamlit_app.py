@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
-import json
 from pathlib import Path
 from utils.knn import KNN
 from utils.metrics_evaluator import MetricsEvaluator
@@ -29,7 +27,7 @@ def split_dataset(dataframe: pd.DataFrame, test_size: float = .2):
     
     return X_train, y_train, X_test, y_test
 
-def load_artifacts() -> tuple[MetricsEvaluator, dict]:
+def load_artifacts() -> MetricsEvaluator:
     X_train, y_train, X_test, y_test = split_dataset(pd.read_csv(ARTIFACTS / "dataset_preprocessed.csv"))
     
     try:
@@ -38,12 +36,13 @@ def load_artifacts() -> tuple[MetricsEvaluator, dict]:
         predictions = model.predict(X_test.values)
         y_pred = predictions['Euclidean']
         evaluator = MetricsEvaluator(y_pred, y_test.values)
-        meta = json.loads((ARTIFACTS / "model_meta.json").read_text())
-        return (evaluator, meta)
-    except Exception as _:
-        return (MetricsEvaluator(np.array([]), np.array([])), {})
 
-model, meta = load_artifacts()
+        return evaluator
+    except Exception as e:
+        print("Error loading artifacts:", e)
+        return MetricsEvaluator(np.array([]), np.array([]))
+
+model = load_artifacts()
 
 st.title("🩺 Deteksi Diabetes (KNN)")
 st.caption("Model ini adalah alat bantu dan **bukan** pengganti diagnosis tenaga medis.")
