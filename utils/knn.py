@@ -10,6 +10,8 @@ class KNN:
   def fit(self, X_train, y_train):
     self.X_train = X_train
     self.y_train = y_train
+    
+    return self
 
   # Fungsi untuk memprediksi label menggunakan jarak Euclidean dan Manhattan
   def predict(self, X_test):
