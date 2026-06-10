@@ -1,53 +1,43 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import traceback
 from pathlib import Path
 from utils.knn import KNN
+from utils.dataset import Dataset
 from utils.metrics_evaluator import MetricsEvaluator
-from utils.helpers import to_percent
+from utils.helpers import to_percent, min_max_normalization
 
 st.set_page_config(page_title="Deteksi Diabetes - KNN", page_icon="🩺", layout="wide")
 
 ARTIFACTS = Path(__file__).parent.resolve()
+dataframe = pd.read_csv(ARTIFACTS / "dataset_preprocessed.csv")
+dataset = Dataset(dataframe)
 
 @st.cache_resource
 
-def split_dataset(dataframe: pd.DataFrame, test_size: float = .2):
-    training_count = int(dataframe.shape[0] * (1 - test_size))
-    
-    # Memisahkan fitur (X) dan target (y)
-    X = dataframe[['Norm_sistolik', 'Norm_diastolik', 'Norm_umur', 'Norm_gds', 'transformed_gender']]
-    y = dataframe['Diagnosa']
-    
-    # Membagi dataset menjadi data Latih (Train) dan data Uji (Test)
-    X_train = X.iloc[:training_count]
-    y_train = y.iloc[:training_count]
-    X_test = X.iloc[training_count:]
-    y_test = y.iloc[training_count:]
-    
-    return X_train, y_train, X_test, y_test
-
-def load_artifacts() -> MetricsEvaluator:
-    X_train, y_train, X_test, y_test = split_dataset(pd.read_csv(ARTIFACTS / "dataset_preprocessed.csv"))
+def load_artifacts() -> tuple[KNN, np.ndarray, np.ndarray]:
+    X_train, y_train, X_test, y_test = dataset.split(X=dataset.X[['Norm_sistolik', 'Norm_diastolik', 'Norm_umur', 'Norm_gds', 'transformed_gender']])
     
     try:
         model = KNN()
         model.fit(X_train, y_train)
         predictions = model.predict(X_test.values)
         y_pred = predictions['Euclidean']
-        evaluator = MetricsEvaluator(y_pred, y_test.values)
 
-        return evaluator
+        return model, y_pred, y_test.values
     except Exception as e:
         print("Error loading artifacts:", e)
-        return MetricsEvaluator(np.array([]), np.array([]))
+        traceback.print_exc()
+        return KNN(), np.array([]), np.array([])
 
-model = load_artifacts()
+model, y_pred, y_test = load_artifacts()
 
 st.title("🩺 Deteksi Diabetes (KNN)")
 st.caption("Model ini adalah alat bantu dan **bukan** pengganti diagnosis tenaga medis.")
 
-tab1, tab2, tab3 = st.tabs(["🔍 Prediksi Individu", "📄 Prediksi Batch (CSV)", "📈 Evaluasi Model"])
+# "📄 Prediksi Batch (CSV)",
+tab1, tab3 = st.tabs(["🔍 Prediksi Individu", "📈 Evaluasi Model"])
 
 with tab1:
     st.subheader("Masukkan Nilai Fitur")
@@ -63,11 +53,28 @@ with tab1:
         inputs['random_blood_sugar'] = st.number_input("Gula Darah Sewaktu", value=0, step=1)
             
     if st.button("Prediksi"):
-        # TODO: Rumus KNN dari Google Colab
-        st.info("Keputusan dibuat dengan K-Nearest Neighbors menggunakan pipeline: imputasi median + standardisasi.")
+        X_min_max_values = {
+            'year': (dataset.X_min['Umur'], dataset.X_max['Umur']),
+            'systolic': (dataset.X_min['Sistolik'], dataset.X_max['Sistolik']),
+            'diastolic': (dataset.X_min['Diastolik'], dataset.X_max['Diastolik']),
+            'random_blood_sugar': (dataset.X_min['GDS'], dataset.X_max['GDS'])
+        }
+        
+        # Transform and Normalize inputs
+        transformed_gender = 1 if inputs['gender'] == "Perempuan" else 0
+        normalized_year = min_max_normalization(inputs['year'], *X_min_max_values['year'])
+        normalized_systolic = min_max_normalization(inputs['systolic'], *X_min_max_values['systolic'])
+        normalized_diastolic = min_max_normalization(inputs['diastolic'], *X_min_max_values['diastolic'])
+        normalized_random_blood_sugar = min_max_normalization(inputs['random_blood_sugar'], *X_min_max_values['random_blood_sugar'])
+        
+        new_data = np.array([[normalized_systolic, normalized_diastolic, normalized_year, normalized_random_blood_sugar, transformed_gender]])
+        prediction = model.predict(new_data)['Euclidean']
+        
+        st.metric("Kelas Prediksi", "1 (Diabetes Melitus 2)" if(prediction == 1) else "0 (Tidak Diabetes)")
+        st.info("**Catatan:** Prediksi ini hanya berdasarkan model KNN dan tidak mempertimbangkan faktor lain yang mungkin relevan. Konsultasikan dengan tenaga medis untuk diagnosis yang akurat.")
 
-with tab2:
-    st.subheader("Unggah CSV untuk Prediksi Massal")
+# with tab2:
+    # st.subheader("Unggah CSV untuk Prediksi Massal")
 #     st.write("CSV harus memuat kolom: **" + ", ".join(FEATURES) + "**")
 #     file = st.file_uploader("Pilih file CSV", type=["csv"])
 #     if file is not None:
@@ -87,17 +94,18 @@ with tab2:
 #             st.download_button("Unduh Hasil (CSV)", out.to_csv(index=False).encode("utf-8"), "prediksi_diabetes.csv", "text/csv")
 
 with tab3:
+    evaluator = MetricsEvaluator(y_pred, y_test)
     st.subheader("Ringkasan Performa*")
     st.write("*Berdasarkan dataset skripsi")
     colA, colB = st.columns(2)
     with colA:
-        st.metric("Accuracy", to_percent(model.accuracy()))
-        st.metric("Precision", to_percent(model.precision()))
+        st.metric("Accuracy", to_percent(evaluator.accuracy()))
+        st.metric("Precision", to_percent(evaluator.precision()))
     with colB:
-        st.metric("Recall (Sensitivitas)", to_percent(model.recall()))
-        st.metric("F1", to_percent(model.f1_score()))
+        st.metric("Recall (Sensitivitas)", to_percent(evaluator.recall()))
+        st.metric("F1", to_percent(evaluator.f1_score()))
     st.write("**Confusion Matrix**")
-    st.pyplot(model.plot_confusion_matrix())
+    st.pyplot(evaluator.plot_confusion_matrix())
     
 st.divider()
 st.markdown("**Disclaimer:** Aplikasi ini bersifat edukatif dan sebagai _decision support_. Untuk diagnosis akhir, konsultasikan dengan tenaga kesehatan profesional.")
