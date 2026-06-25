@@ -17,7 +17,7 @@ dataset = Dataset(dataframe)
 @st.cache_resource
 
 def load_artifacts() -> tuple[KNN, np.ndarray, np.ndarray]:
-    X_train, y_train, X_test, y_test = dataset.split(X=dataset.X[['Norm_sistolik', 'Norm_diastolik', 'Norm_umur', 'Norm_gds', 'transformed_gender']])
+    X_train, y_train, X_test, y_test = dataset.split(X=dataset.X[['norm_sistolik', 'norm_diastolik', 'norm_umur', 'norm_gds', 'transformed_gender']])
     
     try:
         model = KNN()
@@ -54,10 +54,10 @@ with tab1:
             
     if st.button("Prediksi"):
         X_min_max_values = {
-            'year': (dataset.X_min['Umur'], dataset.X_max['Umur']),
-            'systolic': (dataset.X_min['Sistolik'], dataset.X_max['Sistolik']),
-            'diastolic': (dataset.X_min['Diastolik'], dataset.X_max['Diastolik']),
-            'random_blood_sugar': (dataset.X_min['GDS'], dataset.X_max['GDS'])
+            'year': (dataset.X_min['umur'], dataset.X_max['umur']),
+            'systolic': (dataset.X_min['sistolik'], dataset.X_max['sistolik']),
+            'diastolic': (dataset.X_min['diastolik'], dataset.X_max['diastolik']),
+            'random_blood_sugar': (dataset.X_min['gds'], dataset.X_max['gds'])
         }
         
         # Transform and Normalize inputs
