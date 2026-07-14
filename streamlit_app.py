@@ -37,41 +37,42 @@ st.title("🩺 Deteksi Diabetes (KNN)")
 st.caption("Model ini adalah alat bantu dan **bukan** pengganti diagnosis tenaga medis.")
 
 # "📄 Prediksi Batch (CSV)",
-tab1, tab3 = st.tabs(["🔍 Prediksi Individu", "📈 Evaluasi Model"])
+# "📈 Evaluasi Model",
+tab1 = st.tabs(["🔍 Prediksi Individu"])
 
-with tab1:
-    st.subheader("Masukkan Nilai Fitur")
-    cols = st.columns(3)
-    inputs = {}
-    with cols[0]:
-        inputs['year'] = st.number_input("Umur", value=0, step=1)
-        inputs['systolic'] = st.number_input("Tekanan Darah Sistolik", value=0, step=1)
-    with cols[1]:
-        inputs['gender'] = st.selectbox("Jenis Kelamin", ("Laki-laki", "Perempuan"), index=None, placeholder="Pilih jenis kelamin")
-        inputs['diastolic'] = st.number_input("Tekanan Darah Diastolik", value=0, step=1)
-    with cols[2]:
-        inputs['random_blood_sugar'] = st.number_input("Gula Darah Sewaktu", value=0, step=1)
-            
-    if st.button("Prediksi"):
-        X_min_max_values = {
-            'year': (dataset.X_min['umur'], dataset.X_max['umur']),
-            'systolic': (dataset.X_min['sistolik'], dataset.X_max['sistolik']),
-            'diastolic': (dataset.X_min['diastolik'], dataset.X_max['diastolik']),
-            'random_blood_sugar': (dataset.X_min['gds'], dataset.X_max['gds'])
-        }
+# with tab1:
+st.subheader("Masukkan Nilai Fitur")
+cols = st.columns(3)
+inputs = {}
+with cols[0]:
+    inputs['year'] = st.number_input("Umur", value=0, step=1)
+    inputs['systolic'] = st.number_input("Tekanan Darah Sistolik", value=0, step=1)
+with cols[1]:
+    inputs['gender'] = st.selectbox("Jenis Kelamin", ("Laki-laki", "Perempuan"), index=None, placeholder="Pilih jenis kelamin")
+    inputs['diastolic'] = st.number_input("Tekanan Darah Diastolik", value=0, step=1)
+with cols[2]:
+    inputs['random_blood_sugar'] = st.number_input("Gula Darah Sewaktu", value=0, step=1)
         
-        # Transform and Normalize inputs
-        transformed_gender = 1 if inputs['gender'] == "Perempuan" else 0
-        normalized_year = min_max_normalization(inputs['year'], *X_min_max_values['year'])
-        normalized_systolic = min_max_normalization(inputs['systolic'], *X_min_max_values['systolic'])
-        normalized_diastolic = min_max_normalization(inputs['diastolic'], *X_min_max_values['diastolic'])
-        normalized_random_blood_sugar = min_max_normalization(inputs['random_blood_sugar'], *X_min_max_values['random_blood_sugar'])
-        
-        new_data = np.array([[normalized_systolic, normalized_diastolic, normalized_year, normalized_random_blood_sugar, transformed_gender]])
-        prediction = model.predict(new_data)['Euclidean']
-        
-        st.metric("Kelas Prediksi", "1 (Diabetes Melitus 2)" if(prediction == 1) else "0 (Tidak Diabetes)")
-        st.info("**Catatan:** Prediksi ini hanya berdasarkan model KNN dan tidak mempertimbangkan faktor lain yang mungkin relevan. Konsultasikan dengan tenaga medis untuk diagnosis yang akurat.")
+if st.button("Prediksi"):
+    X_min_max_values = {
+        'year': (dataset.X_min['umur'], dataset.X_max['umur']),
+        'systolic': (dataset.X_min['sistolik'], dataset.X_max['sistolik']),
+        'diastolic': (dataset.X_min['diastolik'], dataset.X_max['diastolik']),
+        'random_blood_sugar': (dataset.X_min['gds'], dataset.X_max['gds'])
+    }
+    
+    # Transform and Normalize inputs
+    transformed_gender = 1 if inputs['gender'] == "Perempuan" else 0
+    normalized_year = min_max_normalization(inputs['year'], *X_min_max_values['year'])
+    normalized_systolic = min_max_normalization(inputs['systolic'], *X_min_max_values['systolic'])
+    normalized_diastolic = min_max_normalization(inputs['diastolic'], *X_min_max_values['diastolic'])
+    normalized_random_blood_sugar = min_max_normalization(inputs['random_blood_sugar'], *X_min_max_values['random_blood_sugar'])
+    
+    new_data = np.array([[normalized_systolic, normalized_diastolic, normalized_year, normalized_random_blood_sugar, transformed_gender]])
+    prediction = model.predict(new_data)['Euclidean']
+    
+    st.metric("Kelas Prediksi", "1 (Diabetes Melitus 2)" if(prediction == 1) else "0 (Tidak Diabetes)")
+    st.info("**Catatan:** Prediksi ini hanya berdasarkan model KNN dan tidak mempertimbangkan faktor lain yang mungkin relevan. Konsultasikan dengan tenaga medis untuk diagnosis yang akurat.")
 
 # with tab2:
     # st.subheader("Unggah CSV untuk Prediksi Massal")
@@ -93,19 +94,19 @@ with tab1:
 #             st.dataframe(out.head(20))
 #             st.download_button("Unduh Hasil (CSV)", out.to_csv(index=False).encode("utf-8"), "prediksi_diabetes.csv", "text/csv")
 
-with tab3:
-    evaluator = MetricsEvaluator(y_pred, y_test)
-    st.subheader("Ringkasan Performa*")
-    st.write("*Berdasarkan dataset skripsi")
-    colA, colB = st.columns(2)
-    with colA:
-        st.metric("Accuracy", to_percent(evaluator.accuracy()))
-        st.metric("Precision", to_percent(evaluator.precision()))
-    with colB:
-        st.metric("Recall (Sensitivitas)", to_percent(evaluator.recall()))
-        st.metric("F1", to_percent(evaluator.f1_score()))
-    st.write("**Confusion Matrix**")
-    st.pyplot(evaluator.plot_confusion_matrix())
+# with tab3:
+#     evaluator = MetricsEvaluator(y_pred, y_test)
+#     st.subheader("Ringkasan Performa*")
+#     st.write("*Berdasarkan dataset skripsi")
+#     colA, colB = st.columns(2)
+#     with colA:
+#         st.metric("Accuracy", to_percent(evaluator.accuracy()))
+#         st.metric("Precision", to_percent(evaluator.precision()))
+#     with colB:
+#         st.metric("Recall (Sensitivitas)", to_percent(evaluator.recall()))
+#         st.metric("F1", to_percent(evaluator.f1_score()))
+#     st.write("**Confusion Matrix**")
+#     st.pyplot(evaluator.plot_confusion_matrix())
     
 st.divider()
 st.markdown("**Disclaimer:** Aplikasi ini bersifat edukatif dan sebagai _decision support_. Untuk diagnosis akhir, konsultasikan dengan tenaga kesehatan profesional.")
