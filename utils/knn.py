@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from collections import Counter
 
 class KNN:
@@ -19,6 +20,12 @@ class KNN:
         'Euclidean': np.array([self._euclidean_distance(patient) for patient in X_test]),
         'Manhattan': np.array([self._manhattan_distance(patient) for patient in X_test])
     }
+    
+  def dump(self, X_test:pd.DataFrame, y_test:pd.DataFrame):
+    self.X_test = X_test
+    self.y_test = y_test
+    
+    return self
 
   # Menghitung jarak Euclidean
   def _euclidean_distance(self, patient):

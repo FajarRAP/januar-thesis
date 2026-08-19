@@ -8,3 +8,6 @@ def min_max_normalization(value, min_value, max_value):
         return 0.0
 
     return (value - min_value) / (max_value - min_value)
+
+def min_max_normalization(dataframe: pd.DataFrame):
+    return (dataframe - dataframe.min()) / (dataframe.max() - dataframe.min())
