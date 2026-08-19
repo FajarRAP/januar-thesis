@@ -2,30 +2,28 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import traceback
+from joblib import load
 from pathlib import Path
 from utils.knn import KNN
 from utils.dataset import Dataset
-from utils.metrics_evaluator import MetricsEvaluator
-from utils.helpers import to_percent, min_max_normalization
+from utils.helpers import min_max_normalization
 
 st.set_page_config(page_title="Deteksi Diabetes - KNN", page_icon="🩺", layout="wide")
 
 ARTIFACTS = Path(__file__).parent.resolve()
+model_path = ARTIFACTS / "best_knn_model.joblib"
 dataframe = pd.read_csv(ARTIFACTS / "dataset_preprocessed.csv")
 dataset = Dataset(dataframe)
 
 @st.cache_resource
 
 def load_artifacts() -> tuple[KNN, np.ndarray, np.ndarray]:
-    X_train, y_train, X_test, y_test = dataset.split(X=dataset.X[['norm_sistolik', 'norm_diastolik', 'norm_umur', 'norm_gds', 'transformed_gender']])
-    
     try:
-        model = KNN()
-        model.fit(X_train, y_train)
-        predictions = model.predict(X_test.values)
+        model = load(model_path)
+        predictions = model.predict(model.X_test.values)
         y_pred = predictions['Euclidean']
 
-        return model, y_pred, y_test.values
+        return model, y_pred, model.y_test.values
     except Exception as e:
         print("Error loading artifacts:", e)
         traceback.print_exc()
