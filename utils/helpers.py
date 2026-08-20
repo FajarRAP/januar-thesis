@@ -9,5 +9,5 @@ def min_max_normalization(value, min_value, max_value):
 
     return (value - min_value) / (max_value - min_value)
 
-def min_max_normalization(dataframe: pd.DataFrame):
+def bulk_min_max_normalization(dataframe: pd.DataFrame):
     return (dataframe - dataframe.min()) / (dataframe.max() - dataframe.min())
