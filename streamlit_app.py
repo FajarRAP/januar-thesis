@@ -56,7 +56,7 @@ if st.button("Prediksi"):
         'year': (dataset.X_min['umur'], dataset.X_max['umur']),
         'systolic': (dataset.X_min['sistolik'], dataset.X_max['sistolik']),
         'diastolic': (dataset.X_min['diastolik'], dataset.X_max['diastolik']),
-        'random_blood_sugar': (dataset.X_min['gds'], dataset.X_max['gds'])
+        'random_blood_sugar': (dataset.X_min['glukosa'], dataset.X_max['glukosa'])
     }
     
     # Transform and Normalize inputs
